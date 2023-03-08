@@ -1,6 +1,7 @@
 import math
 
 import torch
+import numpy as np
 
 
 class DataSampler:
@@ -14,6 +15,7 @@ class DataSampler:
 def get_data_sampler(data_name, n_dims, **kwargs):
     names_to_classes = {
         "gaussian": GaussianSampler,
+        "uniform": UniformSampler
     }
     if data_name in names_to_classes:
         sampler_cls = names_to_classes[data_name]
@@ -31,6 +33,26 @@ def sample_transformation(eigenvalues, normalize=False):
         norm_subspace = torch.sum(eigenvalues**2)
         t *= math.sqrt(n_dims / norm_subspace)
     return t
+
+class UniformSampler(DataSampler):
+    def __init__(self, n_dims, min_val=0, max_val=4 * np.pi):
+        super().__init__(n_dims)
+        self.min_val = min_val
+        self.max_val = max_val
+
+    def sample_xs(self, n_points, b_size, n_dims_truncated=None, seeds=None):
+        if seeds is None:
+            xs_b = torch.rand(b_size, n_points, self.n_dims)*(self.max_val-self.min_val)+self.min_val
+        else:
+            xs_b = torch.zeros(b_size, n_points, self.n_dims)
+            generator = torch.Generator()
+            assert len(seeds) == b_size
+            for i, seed in enumerate(seeds):
+                generator.manual_seed(seed)
+                xs_b[i] = torch.rand(n_points, self.n_dims, generator=generator)*(self.max_val-self.min_val)+self.min_val
+        if n_dims_truncated is not None:
+            xs_b[:, :, n_dims_truncated:] = 0
+        return xs_b
 
 
 class GaussianSampler(DataSampler):

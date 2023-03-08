@@ -28,6 +28,23 @@ def build_model(conf):
 
 def get_relevant_baselines(task_name):
     task_to_baselines = {
+        "sin_regression": [
+            # (
+            #     GDModel,
+            #     {
+            #         "model_class": NeuralNetwork,
+            #         "model_class_args": {
+            #             "in_size": 1,
+            #             "hidden_size": 100,
+            #             "out_size": 1,
+            #         },
+            #         "opt_alg": "adam",
+            #         "batch_size": 100,
+            #         "lr": 5e-3,
+            #         "num_steps": 100,
+            #     },
+            # ),
+        ],
         "linear_regression": [
             (LeastSquaresModel, {}),
             (NNModel, {"n_neighbors": 3}),

@@ -35,6 +35,7 @@ curriculum_schema = {
 }
 
 TASK_LIST = [
+    "sin_regression",
     "linear_regression",
     "sparse_linear_regression",
     "linear_classification",
@@ -47,7 +48,7 @@ training_schema = {
     "task_kwargs": merge(tdict, required),
     "num_tasks": merge(tinteger, nullable, default(None)),
     "num_training_examples": merge(tinteger, nullable, default(None)),
-    "data": merge(tstring, allowed(["gaussian"])),
+    "data": merge(tstring, allowed(["gaussian", "uniform"])),
     "batch_size": merge(tinteger, default(64)),
     "learning_rate": merge(tfloat, default(3e-4)),
     "train_steps": merge(tinteger, default(1000)),

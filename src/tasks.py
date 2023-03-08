@@ -1,6 +1,7 @@
 import math
 
 import torch
+import numpy as np
 
 
 def squared_error(ys_pred, ys):
@@ -53,6 +54,7 @@ def get_task_sampler(
     task_name, n_dims, batch_size, pool_dict=None, num_tasks=None, **kwargs
 ):
     task_names_to_classes = {
+        "sin_regression": SinRegression,
         "linear_regression": LinearRegression,
         "sparse_linear_regression": SparseLinearRegression,
         "linear_classification": LinearClassification,
@@ -71,6 +73,52 @@ def get_task_sampler(
     else:
         print("Unknown task")
         raise NotImplementedError
+
+class SinRegression(Task):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1):
+        """scale: a constant by which to scale the randomly sampled weights."""
+        super(SinRegression, self).__init__(n_dims, batch_size, pool_dict, seeds)
+        self.scale = scale
+        self.a_max = 2
+        self.b_max = 2*np.pi
+
+        if pool_dict is None and seeds is None:
+            self.a_b = torch.rand(self.b_size, 1, self.n_dims)*(self.a_max-1)+1
+            self.b_b = torch.rand(self.b_size, 1, self.n_dims)*self.b_max
+        elif seeds is not None:
+            self.a_b = torch.zeros(self.b_size, 1, self.n_dims)
+            self.b_b = torch.zeros(self.b_size, 1, self.n_dims)
+            generator = torch.Generator()
+            assert len(seeds) == self.b_size
+            for i, seed in enumerate(seeds):
+                generator.manual_seed(seed)
+                self.a_b[i] = torch.rand(1, self.n_dims, generator=generator)*(self.a_max-1)+1
+                self.b_b[i] = torch.rand(1, self.n_dims, generator=generator)*self.b_max
+        else:
+            assert "a" in pool_dict and "b" in pool_dict
+            indices = torch.randperm(len(pool_dict["a"]))[:batch_size]
+            self.a_b = pool_dict["a"][indices]
+            self.b_b = pool_dict["b"][indices]
+
+    def evaluate(self, xs_b):
+        a_b = self.a_b.to(xs_b.device)
+        b_b = self.b_b.to(xs_b.device)
+        ys_b = self.scale * torch.sin(a_b*xs_b + b_b)
+        return ys_b.squeeze()
+
+    @staticmethod
+    def generate_pool_dict(n_dims, num_tasks, **kwargs):  # ignore extra args
+        return {"a": torch.rand(num_tasks, 1, self.n_dims)*(self.a_max-1)+1,
+        "b": torch.rand(num_tasks, 1, self.n_dims)*self.b_max}
+
+    @staticmethod
+    def get_metric():
+        return squared_error
+
+    @staticmethod
+    def get_training_metric():
+        return mean_squared_error
+
 
 
 class LinearRegression(Task):
